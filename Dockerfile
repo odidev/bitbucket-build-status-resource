@@ -1,11 +1,10 @@
-FROM ubuntu:xenial
-MAINTAINER Michael Parks <mparks@tkware.info>
+FROM alpine:3.4
+MAINTAINER Ecometrica <>
 
-RUN apt-get update && apt-get install --no-install-recommends -y \
-python \
-python-pip \
-git \
-&& pip install requests \
-&& rm -rf /var/lib/apt/lists/*
+ENV LANG C
+
+RUN apk add --no-cache bash git mercurial python py-pip openssh
+
+RUN pip install requests==2.8.1
 
 ADD scripts/ /opt/resource/
