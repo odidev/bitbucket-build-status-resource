@@ -73,7 +73,7 @@ def set_build_status(repo, commit_sha, state, key, name, url, description,
         err("Request result: " + str(r))
 
 
-    if r.status_code != 201:
+    if r.status_code != 200:
         try:
             msg = ERROR_MAP[r.status_code]
         except KeyError:
