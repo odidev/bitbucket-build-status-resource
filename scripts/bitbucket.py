@@ -73,7 +73,9 @@ def set_build_status(repo, commit_sha, state, key, name, url, description,
         err("Request result: " + str(r))
 
 
-    if r.status_code != 200:
+    # Check status code. Bitbucket brakes rest a bit  by returning 200 or 201
+    # depending on it's the first time the status is posted.
+    if r.status_code not in [200, 201]:
         try:
             msg = ERROR_MAP[r.status_code]
         except KeyError:
