@@ -1,3 +1,90 @@
 #!/usr/bin/env python
 
-import bitbucket
+import subprocess
+import os
+import sys
+import json
+from bitbucket import (
+    json_pp, err, request_access_token, set_build_status, BitbucketException
+)
+
+j = json.loads(sys.stdin.read())
+
+debug = j['source'].get('debug', False)
+
+if debug:
+    err("--DEBUG MODE--")
+
+# Configuration vars
+repo = j['source']['repo']
+url = 'https://api.bitbucket.org/2.0/respositories/{repo}/' \
+      'commit/{commit}/build'
+client_id = j['source']['client_id']
+secret = j['source']['secret']
+
+state = j['params']['state']
+artifact_dir = "%s/%s" % (sys.argv[1], j['params']['repo'])
+
+
+# The build status can only be one of three things
+if state not in ['INPROGRESS', 'SUCCESSFUL', 'FAILED']:
+    err("Invalid build status, must be: INPROGRESS, SUCCESSFUL, or FAILED")
+    exit(1)
+
+# Try and find out if it's a git or hg repo.
+if os.path.exists(os.path.join(artifact_dir, '.hg')):
+    repo_type = 'hg'
+elif os.path.exists(os.path.join(artifact_dir, '.git')):
+    repo_type = 'git'
+else:
+    repo_type = ''
+    err("Cannot detect a repo.")
+    exit(1)
+
+if repo_type == 'git':
+    commit_sha = subprocess.check_output(
+            ['git', '-C', artifact_dir, 'rev-parse', 'HEAD']
+    ).strip()
+else:
+    commit_sha = subprocess.check_output(
+        ['hg', '-R', artifact_dir, 'log', '--rev', 'tip', '--template', '{node}']
+    ).strip()
+
+if debug:
+    err("Commit: " + str(commit_sha))
+
+build_url = "{url}/pipelines/{pipeline}/jobs/{jobname}/builds/{buildname}".format(
+    url=os.environ['ATC_EXTERNAL_URL'],
+    pipeline=os.environ['BUILD_PIPELINE_NAME'],
+    jobname=os.environ['BUILD_JOB_NAME'],
+    buildname=os.environ['BUILD_NAME'],
+)
+if debug:
+    err(build_url)
+
+# Do the update.
+try:
+    access_token = request_access_token(client_id, secret, debug)
+
+    set_build_status(
+        repo=repo,
+        commit_sha=commit_sha,
+        state=state,
+        key=os.environ["BUILD_JOB_NAME"],
+        name=os.environ["BUILD_NAME"],
+        url=build_url,
+        description="Concourse build {}".format(os.environ["BUILD_ID"]),
+        access_token=access_token,
+        debug=debug
+    )
+
+except BitbucketException as e:
+    err(str(e))
+    exit(1)
+
+status_js = {"version": {"ref": commit_sha}}
+
+if debug:
+    err("Returning to concourse:\n" + json_pp(status_js))
+
+print(json.dumps(status_js))
