@@ -5,6 +5,10 @@ ENV LANG C
 
 RUN apk add --no-cache bash git mercurial python py-pip openssh
 
-RUN pip install requests==2.8.1
+ADD . /concourse-bitbucket-resource
 
-ADD scripts/ /opt/resource/
+RUN pip install -r /concourse-bitbucket-resource/requirements.txt
+
+RUN cd /concourse-bitbucket-resource && PYTHONPATH=. py.test
+
+ADD scripts /opt/resource
