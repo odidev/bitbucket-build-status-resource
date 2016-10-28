@@ -53,11 +53,10 @@ else:
 if debug:
     err("Commit: " + str(commit_sha))
 
-build_url = "{url}/pipelines/{pipeline}/jobs/{jobname}/builds/{buildname}".format(
+# use build_id because it will link directly to the build (and thus works for pipelines not belonging to the main team)
+build_url = "{url}/builds/{buildid}".format(
     url=os.environ['ATC_EXTERNAL_URL'],
-    pipeline=os.environ['BUILD_PIPELINE_NAME'],
-    jobname=os.environ['BUILD_JOB_NAME'],
-    buildname=os.environ['BUILD_NAME'],
+    buildid=os.environ['BUILD_ID']
 )
 if debug:
     err(build_url)
