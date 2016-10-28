@@ -46,7 +46,7 @@ Parameters:
  This will come from a previous `get` on a `git/hg` resource. 
  Make sure to use the resource directory name, not the name of the resource.
  
- * **`build_status`** - the state of the status. Must be one of 
+ * **`state`** - the state of the status. Must be one of 
  `SUCCESSFUL`, `FAILED`, or `INPROGRESS` - case sensitive.
 
 ## Example
@@ -74,6 +74,7 @@ Once unit tests finish, the status is updated to either success or failure depen
         source:
           client_id: cid
           secret: hemligt
+          repo: user/repo
 
     jobs:
       - name: integration-tests
@@ -83,7 +84,7 @@ Once unit tests finish, the status is updated to either success or failure depen
 
         - put: bitbucket-notify
           params:
-            build_status: INPROGRESS
+            state: INPROGRESS
             repo: testing-repo
 
         - task: tests
@@ -91,12 +92,12 @@ Once unit tests finish, the status is updated to either success or failure depen
           on_success:
             put: bitbucket-notify
             params:
-              build_status: SUCCESSFUL
+              state: SUCCESSFUL
               repo: testing-repo
           on_failure:
             put: bitbucket-notify
             params:
-              build_status: FAILED
+              state: FAILED
               repo: testing-repo
 
 In this example, notice that the repo: parameter is set to the same name as the testing-repo resource. 
