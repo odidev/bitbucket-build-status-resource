@@ -16,6 +16,16 @@ This repo is tied to the [associated Docker image](https://hub.docker.com/r/ecom
 The build of the docker image is using the docker hub automated build. 
 The builds will run the tests to make sure that a broken image is never pushed.
 
+## Creating an Access Token
+You need to create an OAuth access token for your github team/user account with the following permissions: `Webhooks (r/w), Repositories (r)`
+
+Make sure to **provide a callback URL** (it's not needed at runtime but Bitbucket insists on it anyway). For example, you can use the URL of your concourse instance. Otherwise you will see an error similar to the following
+`
+Access token result: <Response [400]>{"error_description": "No callback uri defined for the OAuth client.", "error": "invalid_request"}
+HTTP 401 Unauthorized - Are your bitbucket credentials correct?
+`
+
+
 ## Resource Configuration
 
 These items go in the `source` fields of the resource type. Bold items are required:
