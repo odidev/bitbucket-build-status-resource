@@ -16,6 +16,16 @@ This repo is tied to the [associated Docker image](https://hub.docker.com/r/ecom
 The build of the docker image is using the docker hub automated build. 
 The builds will run the tests to make sure that a broken image is never pushed.
 
+## Creating an Access Token
+You need to create an OAuth access token for your github team/user account with the following permissions: `Webhooks (r/w), Repositories (r)`
+
+Make sure to **provide a callback URL** (it's not needed at runtime but Bitbucket insists on it anyway). For example, you can use the URL of your concourse instance. Otherwise you will see an error similar to the following
+`
+Access token result: <Response [400]>{"error_description": "No callback uri defined for the OAuth client.", "error": "invalid_request"}
+HTTP 401 Unauthorized - Are your bitbucket credentials correct?
+`
+
+
 ## Resource Configuration
 
 These items go in the `source` fields of the resource type. Bold items are required:
@@ -46,7 +56,7 @@ Parameters:
  This will come from a previous `get` on a `git/hg` resource. 
  Make sure to use the resource directory name, not the name of the resource.
  
- * **`build_status`** - the state of the status. Must be one of 
+ * **`state`** - the state of the status. Must be one of 
  `SUCCESSFUL`, `FAILED`, or `INPROGRESS` - case sensitive.
 
 ## Example
@@ -74,6 +84,7 @@ Once unit tests finish, the status is updated to either success or failure depen
         source:
           client_id: cid
           secret: hemligt
+          repo: user/repo
 
     jobs:
       - name: integration-tests
@@ -83,7 +94,7 @@ Once unit tests finish, the status is updated to either success or failure depen
 
         - put: bitbucket-notify
           params:
-            build_status: INPROGRESS
+            state: INPROGRESS
             repo: testing-repo
 
         - task: tests
@@ -91,12 +102,12 @@ Once unit tests finish, the status is updated to either success or failure depen
           on_success:
             put: bitbucket-notify
             params:
-              build_status: SUCCESSFUL
+              state: SUCCESSFUL
               repo: testing-repo
           on_failure:
             put: bitbucket-notify
             params:
-              build_status: FAILED
+              state: FAILED
               repo: testing-repo
 
 In this example, notice that the repo: parameter is set to the same name as the testing-repo resource. 
