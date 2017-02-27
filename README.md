@@ -13,7 +13,7 @@ Summary of changes:
 * Uses unittests instead of behave for tests.
 * Post correct URLs to Bitbucket when using multiple teams in concourse
 
-This repo is tied to the [associated Docker image](https://hub.docker.com/r/ecometrica/concourse-resource-bitbucket/). 
+You can find a pre-built [Docker image on DockerHub](https://hub.docker.com/r/johannesrudolph/concourse-resource-bitbucket/). 
 The build of the docker image is using the docker hub automated build. 
 The builds will run the tests to make sure that a broken image is never pushed.
 
