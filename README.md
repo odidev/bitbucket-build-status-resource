@@ -1,6 +1,6 @@
 # concourse-resource-bitbucket
 
-This is a fork of https://github.com/Karunamon/concourse-resource-bitbucket. 
+This is a fork of https://github.com/ecometrica/concourse-resource-bitbucket, which in turn forked https://github.com/Karunamon/concourse-resource-bitbucket. 
 This fork is substantially changed from the original.
 
 Summary of changes:
@@ -11,6 +11,7 @@ Summary of changes:
 * Support both hg and git repos.
 * Create an automated docker build.
 * Uses unittests instead of behave for tests.
+* Post correct URLs to Bitbucket when using multiple teams in concourse
 
 This repo is tied to the [associated Docker image](https://hub.docker.com/r/ecometrica/concourse-resource-bitbucket/). 
 The build of the docker image is using the docker hub automated build. 
