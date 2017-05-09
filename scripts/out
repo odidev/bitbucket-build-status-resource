@@ -65,9 +65,11 @@ if debug:
 try:
     access_token = request_access_token(client_id, secret, debug)
 
-    pipeline = os.environ['$BUILD_PIPELINE_NAME']
-    job = os.environ['BUILD_JOB_NAME']
-    build_name = os.environ['BUILD_NAME'] # name within job
+    # provide default values as these env vars will be unset in one-off builds
+    # see also http://concourse.ci/implementing-resources.html
+    pipeline = os.environ.get('BUILD_PIPELINE_NAME', '_pipeline_')
+    job = os.environ.get('BUILD_JOB_NAME', '_job_'),
+    build_name = os.environ.get('BUILD_NAME', '_build#_') # name within job
     build_id = os.environ['BUILD_ID'] # internal, unique build id in concurse
     
     slug = "{0}/{1} #{2}".format(pipeline, job, build_name)
