@@ -80,7 +80,7 @@ try:
         key=build_id,
         name=slug,
         url=build_url,
-        description="Concourse CI Build",
+        description="Concourse CI Build, hijack as #{0}".format(build_id),
         access_token=access_token,
         debug=debug
     )
