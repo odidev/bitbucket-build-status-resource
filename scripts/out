@@ -65,14 +65,20 @@ if debug:
 try:
     access_token = request_access_token(client_id, secret, debug)
 
+    pipeline = os.environ['$BUILD_PIPELINE_NAME']
+    job = os.environ['BUILD_JOB_NAME']
+    build_name = os.environ['BUILD_NAME'] # name within job
+    build_id = os.environ['BUILD_ID'] # internal, unique build id in concurse
+    
+    slug = "{0}/{1} #{2}".format(pipeline, job, build_name)
     set_build_status(
         repo=repo,
         commit_sha=commit_sha,
         state=state,
-        key=os.environ["BUILD_JOB_NAME"],
-        name=os.environ["BUILD_NAME"],
+        key=build_id,
+        name=slug,
         url=build_url,
-        description="Concourse build {}".format(os.environ["BUILD_ID"]),
+        description="Concourse CI Build",
         access_token=access_token,
         debug=debug
     )
