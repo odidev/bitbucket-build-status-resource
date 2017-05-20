@@ -18,7 +18,7 @@ if debug:
 # Configuration vars
 driver = j['source'].get('driver', 'Bitbucket Server')
 
-state = j['params']['state']
+state = j['params'].get('state', j['params']['build_status'])
 artifact_dir = "%s/%s" % (sys.argv[1], j['params']['repo'])
 
 repo = ''
