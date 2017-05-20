@@ -63,7 +63,7 @@ if 'scripts.bitbucket' != __name__:
         print('[]')
         sys.exit(0)
     elif 'in' in sys.argv[0]:
-        print('{}')
+        print('{"version":{}}')
         sys.exit(0)
 
     j = parse_stdin()
