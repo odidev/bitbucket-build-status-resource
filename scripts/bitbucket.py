@@ -56,7 +56,7 @@ def set_build_status(repo, commit_sha, state, key, name, url, description,
     # Construct the URL and JSON objects
     if driver == 'Bitbucket Server':
         post_url = "{endpoint}/rest/build-status/1.0/commits/{commit}".format(
-            endpoint=endpoint,
+            endpoint=endpoint.rstrip('/'),
             commit=commit_sha
         )
 
