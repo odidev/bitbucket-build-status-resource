@@ -69,18 +69,20 @@ if 'scripts.bitbucket' != __name__:
     j = parse_stdin()
 
     # Configuration vars
-    url = j['source']['bitbucket_url'] + 'rest/build-status/1.0/commits/'
     verify_ssl = j['source'].get('verify_ssl', True)
     debug = j['source'].get('debug', False)
     username = j['source']['bitbucket_username']
     password = j['source']['bitbucket_password']
     repository_type = j['source'].get('repository_type', 'git')
+    driver = j['source'].get('driver', 'Bitbucket Server')
 
     build_status = j['params']['build_status']
     artifact_dir = "%s/%s" % (sys.argv[1], j['params']['repo'])
 
     if debug:
         err("--DEBUG MODE--")
+
+    commit_sha = ''
 
     if repository_type == 'git':
         # It is recommended not to parse the .git folder directly due to garbage
@@ -112,8 +114,19 @@ if 'scripts.bitbucket' != __name__:
         if debug:
             err("SSL warnings disabled\n")
 
+    post_url = ''
+
     # Construct the URL and JSON objects
-    post_url = url + commit_sha
+    if driver == 'Bitbucket Server':
+        post_url = j['source']['bitbucket_url'] + 'rest/build-status/1.0/commits/' + commit_sha
+    elif driver == 'Bitbucket Cloud':
+        owner = j['source'].get('owner', username)
+        repository_name = j['source'].get('repository_name', j['params']['repo'])
+        post_url = 'https://api.bitbucket.org/2.0/repositories/' + owner + '/' + repository_name + '/commit/' + commit_sha + '/statuses/build'
+    else:
+        err("Invalid driver, must be: Bitbucket Server or Bitbucket Cloud")
+        exit(1)
+
     if debug:
         err(json_pp(j))
         err("Notifying %s that build %s is in status: %s" %
@@ -148,12 +161,18 @@ if 'scripts.bitbucket' != __name__:
         err(json_pp(js))
 
     r = post_result(post_url, username, password, verify_ssl, js, debug)
-    if r.status_code != 204:
+    if driver == 'Bitbucket Server':
+        if r.status_code != 204:
+            sys.exit(1)
+    elif driver == 'Bitbucket Cloud':
+        if r.status_code != 200 and r.status_code != 201:
+            sys.exit(1)
+    else:
         sys.exit(1)
 
     status_js = {"version": {"ref": commit_sha}}
 
     if debug:
-        err("Returning to concourse:\n" + json_pp(status_js))
+        err("Returning to concourse:\n" + json.dumps(status_js))
 
     print(json.dumps(status_js))
