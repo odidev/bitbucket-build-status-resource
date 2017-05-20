@@ -112,7 +112,10 @@ else:
 
 # Do the update.
 try:
-    access_token = request_access_token(client_id, secret, debug)
+    access_token = ''
+
+    if driver == 'Bitbucket Cloud':
+        access_token = request_access_token(client_id, secret, debug)
 
     # provide default values as these env vars will be unset in one-off builds
     # see also http://concourse.ci/implementing-resources.html
