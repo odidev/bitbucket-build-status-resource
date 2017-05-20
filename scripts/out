@@ -135,6 +135,7 @@ try:
         description=description,
         access_token=access_token,
         debug=debug,
+        driver=driver,
         endpoint=endpoint,
         username=username,
         password=password,
