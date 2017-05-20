@@ -139,8 +139,20 @@ if 'scripts.bitbucket' != __name__:
         err(json_pp(j))
         err("Notifying %s that build %s is in status: %s" %
             (post_url, os.environ["BUILD_NAME"], build_status))
+    if "key" in j["params"]:
+        key = j["params"]["key"]
+    else:
+        key = os.environ["BUILD_JOB_NAME"]
 
-    if 'BUILD_TEAM_NAME' in os.environ:
+    if "name" in j["params"]:
+        name = j["params"]["name"]
+    else:
+        name = os.environ["BUILD_NAME"]
+
+    if "build_url_file" in j["params"]:
+        with open(os.path.join(sys.argv[1], j["params"]["build_url_file"]), "r") as fp:
+            build_url = fp.readlines()[0]
+    elif 'BUILD_TEAM_NAME' in os.environ:
         build_url = "{url}/teams/{team}/pipelines/{pipeline}/jobs/{jobname}/builds/{buildname}".format(
                 url=os.environ['ATC_EXTERNAL_URL'],
                 team=os.environ['BUILD_TEAM_NAME'],
@@ -156,13 +168,19 @@ if 'scripts.bitbucket' != __name__:
                 buildname=os.environ['BUILD_NAME'],
         )
 
+    if "description_file" in j["params"]:
+        with open(os.path.join(sys.argv[1], j["params"]["description_file"]), "r") as fp:
+            description = fp.read()
+    else:
+        description = "Concourse build %s" % os.environ["BUILD_ID"]
+
     # https://developer.atlassian.com/bitbucket/server/docs/latest/how-tos/updating-build-status-for-commits.html
     js = {
         "state": build_status,
         "key": key,
         "name": name,
         "url": build_url,
-        "description": "Concourse build %s" % os.environ["BUILD_ID"]
+        "description": description
     }
 
     if debug:
