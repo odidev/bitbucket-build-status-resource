@@ -5,6 +5,12 @@
 [![Build Status](https://travis-ci.org/Karunamon/concourse-resource-bitbucket.svg?branch=master)](https://travis-ci.org/Karunamon/concourse-resource-bitbucket)
 
 This is a fork of https://github.com/Karunamon/concourse-resource-bitbucket.
+The following forks have been merged in, too:
+* https://github.com/Fydon/concourse-resource-bitbucket
+* https://github.com/mehtaphysical/concourse-resource-bitbucket
+* https://github.com/aecepoglu/concourse-resource-bitbucket
+* https://github.com/ecometrica/concourse-resource-bitbucket
+* https://github.com/Meshcloud/concourse-resource-bitbucket
 This fork is substantially changed from the original.
 
 Summary of changes:
@@ -15,10 +21,20 @@ Summary of changes:
 * Support both hg and git repos.
 * Create an automated docker build.
 * Uses unittests instead of behave for tests.
+* Post correct URLs to Bitbucket when using multiple teams in concourse
 
-This repo is tied to the [associated Docker image](https://hub.docker.com/r/ecometrica/concourse-resource-bitbucket/).
-The build of the docker image is using the docker hub automated build.
-The builds will run the tests to make sure that a broken image is never pushed.
+You can find a pre-built [Docker image on DockerHub](https://hub.docker.com/r/shyxormz/bitbucket-build-status-resource/).
+If you come from one of the integrated forks, you can use the image with tag `compability`, which should work without you changing anything else.
+
+## Creating an Access Token
+You need to create an OAuth access token for your github team/user account with the following permissions: `Webhooks (r/w), Repositories (r)`
+
+Make sure to **provide a callback URL** (it's not needed at runtime but Bitbucket insists on it anyway). For example, you can use the URL of your concourse instance. Otherwise you will see an error similar to the following
+`
+Access token result: <Response [400]>{"error_description": "No callback uri defined for the OAuth client.", "error": "invalid_request"}
+HTTP 401 Unauthorized - Are your bitbucket credentials correct?
+`
+
 
 ## Resource Configuration
 
@@ -55,10 +71,10 @@ Update the status of a commit.
 Parameters: *(items in bold are required)*
 
  * **`repo`** - Name of the git repo containing the SHA to be updated.
- This will come from a previous `get` on a `git` resource.
+ This will come from a previous `get` on a `git/hg` resource.
  Make sure to use the git directory name, not the name of the resource.
 
- * **`build_status`** - the state of the status. Must be one of
+ * **`state`** - the state of the status. Must be one of
  `SUCCESSFUL`, `FAILED`, or `INPROGRESS` - case sensitive.
 
  * `build_url_file` - Use the url given in file.
@@ -96,6 +112,7 @@ Once unit tests finish, the status is updated to either success or failure depen
         source:
           client_id: cid
           secret: hemligt
+          repo: user/repo
 
     jobs:
       - name: integration-tests
@@ -105,7 +122,7 @@ Once unit tests finish, the status is updated to either success or failure depen
 
         - put: bitbucket-notify
           params:
-            build_status: INPROGRESS
+            state: INPROGRESS
             repo: testing-repo
 
         - task: tests
@@ -113,12 +130,12 @@ Once unit tests finish, the status is updated to either success or failure depen
           on_success:
             put: bitbucket-notify
             params:
-              build_status: SUCCESSFUL
+              state: SUCCESSFUL
               repo: testing-repo
           on_failure:
             put: bitbucket-notify
             params:
-              build_status: FAILED
+              state: FAILED
               repo: testing-repo
 
 In this example, notice that the repo: parameter is set to the same name as the testing-repo resource.
