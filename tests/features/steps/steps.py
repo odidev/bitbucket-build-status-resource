@@ -33,10 +33,10 @@ def step_impl(context):
     context.inscript = "scripts/in"
 
 
-@then(u'I should get back an empty JSON doc')
+@then(u'I should get back an empty ref')
 def step_impl(context):
     out = subprocess.check_output(context.inscript).strip()
-    assert "{}" in str(out)
+    assert '{ "version": { "ref": "none" }}' == str(out)
 
 
 @given(u'I have used the "check" script')

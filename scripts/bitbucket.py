@@ -3,9 +3,28 @@
 import sys
 import json
 import requests
-import os
-import subprocess
-from requests.auth import HTTPBasicAuth
+from requests.auth import HTTPBasicAuth, AuthBase
+
+ERROR_MAP = {
+    403: "HTTP 403 Forbidden - Does your bitbucket user have rights to the repo?",
+    404: "HTTP 404 Not Found - Does the repo supplied exist?",
+    400: "HTTP 401 Unauthorized - Are your bitbucket credentials correct?"
+}
+
+
+class BitbucketException(Exception): pass
+
+
+class BitbucketOAuth(AuthBase):
+    """
+        Adds the correct auth token for OAuth access to bitbucket.com
+    """
+    def __init__(self, access_token):
+        self.access_token = access_token
+
+    def __call__(self, r):
+        r.headers['Authorization'] = "Bearer {}".format(self.access_token)
+        return r
 
 
 # Convenience method for writing to stderr. Coerces input to a string.
@@ -16,12 +35,12 @@ def err(txt):
 # Convenience method for pretty-printing JSON
 def json_pp(json_object):
     if isinstance(json_object, dict):
-        json.dumps(json_object,
+        return json.dumps(json_object,
                    sort_keys=True,
                    indent=4,
                    separators=(',', ':')) + "\n"
     elif isinstance(json_object, str):
-        json.dumps(json.loads(json_object),
+        return json.dumps(json.loads(json_object),
                    sort_keys=True,
                    indent=4,
                    separators=(',', ':')) + "\n"
@@ -29,176 +48,93 @@ def json_pp(json_object):
         raise NameError('Must be a dictionary or json-formatted string')
 
 
-def parse_stdin():
-    return json.loads(sys.stdin.read())
-
-
-def post_result(url, user, password, verify, data, debug):
-    r = requests.post(
-        url,
-        auth=HTTPBasicAuth(user, password),
-        verify=verify,
-        json=data
-        )
-
-    if debug:
-        err("Request result: " + str(r))
-
-    if r.status_code == 403:
-        err("HTTP 403 Forbidden - Does your bitbucket user have rights to the repo?")
-    elif r.status_code == 401:
-        err("HTTP 401 Unauthorized - Are your bitbucket credentials correct?")
-
-    # All other errors, just dump the JSON
-    if r.status_code != 204:  # 204 is a success per Bitbucket docs
-        err(json_pp(r.json()))
-
-    return r
-
-# Stop all this from executing if we were imported, say, for testing.
-if 'scripts.bitbucket' != __name__:
-
-    # Check and in are useless for this resource, so just return blank objects
-    if 'check' in sys.argv[0]:
-        print('[]')
-        sys.exit(0)
-    elif 'in' in sys.argv[0]:
-        print('{ "version": { ref: "none" } }')
-        sys.exit(0)
-
-    j = parse_stdin()
-
-    # Configuration vars
-    verify_ssl = j['source'].get('verify_ssl', True)
-    debug = j['source'].get('debug', False)
-    username = j['source']['bitbucket_username']
-    password = j['source']['bitbucket_password']
-    repository_type = j['source'].get('repository_type', 'git')
-    driver = j['source'].get('driver', 'Bitbucket Server')
-
-    build_status = j['params']['build_status']
-    artifact_dir = "%s/%s" % (sys.argv[1], j['params']['repo'])
-
-    if debug:
-        err("--DEBUG MODE--")
-
-    commit_sha = ''
-
-    if repository_type == 'git':
-        # It is recommended not to parse the .git folder directly due to garbage
-        # collection. It's more sustainable to just install git and parse the output.
-        commit_sha = subprocess.check_output(
-                ['git', '-C', artifact_dir, 'rev-parse', 'HEAD']
-        ).strip()
-    elif repository_type == 'mercurial':
-        commit_sha = subprocess.check_output(
-                ['hg', 'log', '--cwd', artifact_dir, '--limit', '1', '--rev', '.', '--template', "{node}"]
-        ).strip()
-    else:
-        err("Invalid repository type, must be: git or mercurial")
-        exit(1)
-
-    if debug:
-        err("Commit: " + str(commit_sha))
-
-    key = os.environ["BUILD_JOB_NAME"]
-    if j['params'].get('key', False):
-        key = j['params']['key']
-
-    name = os.environ["BUILD_JOB_NAME"]
-    if j['params'].get('name', False):
-        name = j['params']['name']
-
-    # The build status can only be one of three things
-    if 'INPROGRESS' not in build_status and \
-                    'SUCCESSFUL' not in build_status and \
-                    'FAILED' not in build_status:
-        err("Invalid build status, must be: INPROGRESS, SUCCESSFUL, or FAILED")
-        exit(1)
-
-    # Squelch the nanny message if we disabled SSL
-    if verify_ssl is False:
-        requests.packages.urllib3.disable_warnings()
-        if debug:
-            err("SSL warnings disabled\n")
+def set_build_status(repo, commit_sha, state, key, name, url, description,
+                     access_token, debug, driver, endpoint, username, password, verify_ssl):
 
     post_url = ''
 
     # Construct the URL and JSON objects
     if driver == 'Bitbucket Server':
-        post_url = j['source']['bitbucket_url'] + 'rest/build-status/1.0/commits/' + commit_sha
+        post_url = "{endpoint}/rest/build-status/1.0/commits/{commit}".format(
+            endpoint=endpoint,
+            commit=commit_sha
+        )
+
+        # Squelch the nanny message if we disabled SSL
+        if verify_ssl is False:
+            requests.packages.urllib3.disable_warnings()
+            if debug:
+                err("SSL warnings disabled\n")
     elif driver == 'Bitbucket Cloud':
-        owner = j['source'].get('owner', username)
-        repository_name = j['source'].get('repository_name', j['params']['repo'])
-        post_url = 'https://api.bitbucket.org/2.0/repositories/' + owner + '/' + repository_name + '/commit/' + commit_sha + '/statuses/build'
+        post_url = "https://api.bitbucket.org/2.0/repositories/{repo}/commit/{commit}/statuses/build".format(
+            repo=repo,
+            commit=commit_sha
+        )
     else:
         err("Invalid driver, must be: Bitbucket Server or Bitbucket Cloud")
         exit(1)
 
-    if debug:
-        err(json_pp(j))
-        err("Notifying %s that build %s is in status: %s" %
-            (post_url, os.environ["BUILD_NAME"], build_status))
-    if "key" in j["params"]:
-        key = j["params"]["key"]
-    else:
-        key = os.environ["BUILD_JOB_NAME"]
-
-    if "name" in j["params"]:
-        name = j["params"]["name"]
-    else:
-        name = os.environ["BUILD_NAME"]
-
-    if "build_url_file" in j["params"]:
-        with open(os.path.join(sys.argv[1], j["params"]["build_url_file"]), "r") as fp:
-            build_url = fp.readlines()[0]
-    elif 'BUILD_TEAM_NAME' in os.environ:
-        build_url = "{url}/teams/{team}/pipelines/{pipeline}/jobs/{jobname}/builds/{buildname}".format(
-                url=os.environ['ATC_EXTERNAL_URL'],
-                team=os.environ['BUILD_TEAM_NAME'],
-                pipeline=os.environ['BUILD_PIPELINE_NAME'],
-                jobname=os.environ['BUILD_JOB_NAME'],
-                buildname=os.environ['BUILD_NAME'],
-        )
-    else:
-        build_url = "{url}/pipelines/{pipeline}/jobs/{jobname}/builds/{buildname}".format(
-                url=os.environ['ATC_EXTERNAL_URL'],
-                pipeline=os.environ['BUILD_PIPELINE_NAME'],
-                jobname=os.environ['BUILD_JOB_NAME'],
-                buildname=os.environ['BUILD_NAME'],
-        )
-
-    if "description_file" in j["params"]:
-        with open(os.path.join(sys.argv[1], j["params"]["description_file"]), "r") as fp:
-            description = fp.read()
-    else:
-        description = "Concourse build %s" % os.environ["BUILD_ID"]
-
-    # https://developer.atlassian.com/bitbucket/server/docs/latest/how-tos/updating-build-status-for-commits.html
-    js = {
-        "state": build_status,
+    data = {
+        "state": state,
         "key": key,
         "name": name,
-        "url": build_url,
+        "url": url,
         "description": description
     }
 
+    if driver == 'Bitbucket Cloud':
+        r = requests.post(
+            post_url,
+            auth=BitbucketOAuth(access_token),
+            json=data
+        )
+    elif driver == 'Bitbucket Server':
+        r = requests.post(
+            post_url,
+            auth=HTTPBasicAuth(username, password),
+            verify=verify_ssl,
+            json=data
+        )
+
     if debug:
-        err(json_pp(js))
+        err("Request result: " + str(r))
 
-    r = post_result(post_url, username, password, verify_ssl, js, debug)
-    if driver == 'Bitbucket Server':
-        if r.status_code != 204:
-            sys.exit(1)
-    elif driver == 'Bitbucket Cloud':
-        if r.status_code != 200 and r.status_code != 201:
-            sys.exit(1)
-    else:
-        sys.exit(1)
+    # Check status code. Bitbucket brakes rest a bit  by returning 200 or 201
+    # depending on it's the first time the status is posted.
+    if driver == 'Bitbucket Cloud':
+        if r.status_code not in [200, 201]:
+            try:
+                msg = ERROR_MAP[r.status_code]
+            except KeyError:
+                msg = json_pp(r.json())
 
-    status_js = {"version": {"ref": commit_sha}}
+            raise BitbucketException(msg)
+    elif driver == 'Bitbucket Server':
+        if r.status_code not in [204]:
+            try:
+                msg = ERROR_MAP[r.status_code]
+            except KeyError:
+                msg = json_pp(r.json())
+
+            raise BitbucketException(msg)
+
+
+def request_access_token(client_id, secret, debug):
+    r = requests.post(
+        'https://bitbucket.org/site/oauth2/access_token',
+        auth=HTTPBasicAuth(client_id, secret),
+        data={'grant_type': 'client_credentials'}
+        )
 
     if debug:
-        err("Returning to concourse:\n" + json.dumps(status_js))
+        err("Access token result: " + str(r) + str(r.content))
 
-    print(json.dumps(status_js))
+    if r.status_code != 200:
+        try:
+            msg = ERROR_MAP[r.status_code]
+        except KeyError:
+            msg = json_pp(r.json())
+
+        raise BitbucketException(msg)
+
+    return r.json()['access_token']
