@@ -1,12 +1,12 @@
-FROM ubuntu:xenial
-MAINTAINER Michael Parks <mparks@tkware.info>
+FROM alpine:latest
 
-RUN apt-get update && apt-get install --no-install-recommends -y \
-python \
-python-pip \
-git \
-mercurial \
-&& pip install requests \
-&& rm -rf /var/lib/apt/lists/*
+MAINTAINER Patrick Pokatilo <docker-hub@shyxormz.net>
+
+RUN apk update --no-progress && \
+    apk add --no-progress \
+        py-pip \
+        git \
+        mercurial && \
+    pip install requests
 
 ADD scripts/ /opt/resource/
