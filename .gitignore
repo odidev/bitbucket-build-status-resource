@@ -1,4 +1,6 @@
 *.pyc
 
+demo.json
+
 #pycharm
 .idea

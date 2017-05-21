@@ -3,6 +3,7 @@
 import sys
 import json
 import requests
+from abc import ABCMeta, abstractmethod
 from requests.auth import HTTPBasicAuth, AuthBase
 
 ERROR_MAP = {
@@ -13,6 +14,26 @@ ERROR_MAP = {
 
 
 class BitbucketException(Exception): pass
+
+
+class BitbucketDriver(object):
+    __metaclass__ = ABCMeta
+
+    @abstractmethod
+    def __init__(self, config):
+        return
+
+    @abstractmethod
+    def get_post_url(self, commit_hash):
+        return ''
+
+    @abstractmethod
+    def get_request_options(self):
+        return {}
+
+    @abstractmethod
+    def get_valid_response_status(self):
+        return []
 
 
 class BitbucketOAuth(AuthBase):
@@ -48,31 +69,10 @@ def json_pp(json_object):
         raise NameError('Must be a dictionary or json-formatted string')
 
 
-def set_build_status(repo, commit_sha, state, key, name, url, description,
-                     access_token, debug, driver, endpoint, username, password, verify_ssl):
+def set_build_status(repo, commit_hash, state, key, name, url, description,
+                     debug, driver, endpoint, username, password, verify_ssl):
 
-    post_url = ''
-
-    # Construct the URL and JSON objects
-    if driver == 'Bitbucket Server':
-        post_url = "{endpoint}/rest/build-status/1.0/commits/{commit}".format(
-            endpoint=endpoint.rstrip('/'),
-            commit=commit_sha
-        )
-
-        # Squelch the nanny message if we disabled SSL
-        if verify_ssl is False:
-            requests.packages.urllib3.disable_warnings()
-            if debug:
-                err("SSL warnings disabled\n")
-    elif driver == 'Bitbucket Cloud':
-        post_url = "https://api.bitbucket.org/2.0/repositories/{repo}/commit/{commit}/statuses/build".format(
-            repo=repo,
-            commit=commit_sha
-        )
-    else:
-        err("Invalid driver, must be: Bitbucket Server or Bitbucket Cloud")
-        exit(1)
+    post_url = driver.get_post_url(commit_hash)
 
     data = {
         "state": state,
@@ -82,41 +82,24 @@ def set_build_status(repo, commit_sha, state, key, name, url, description,
         "description": description
     }
 
-    if driver == 'Bitbucket Cloud':
-        r = requests.post(
-            post_url,
-            auth=BitbucketOAuth(access_token),
-            json=data
-        )
-    elif driver == 'Bitbucket Server':
-        r = requests.post(
-            post_url,
-            auth=HTTPBasicAuth(username, password),
-            verify=verify_ssl,
-            json=data
-        )
+    r = requests.post(
+        post_url,
+        json=data,
+        **driver.get_request_options()
+    )
 
     if debug:
         err("Request result: " + str(r))
 
     # Check status code. Bitbucket brakes rest a bit  by returning 200 or 201
     # depending on it's the first time the status is posted.
-    if driver == 'Bitbucket Cloud':
-        if r.status_code not in [200, 201]:
-            try:
-                msg = ERROR_MAP[r.status_code]
-            except KeyError:
-                msg = json_pp(r.json())
+    if r.status_code not in driver.get_valid_response_status():
+        try:
+            msg = ERROR_MAP[r.status_code]
+        except KeyError:
+            msg = json_pp(r.json())
 
-            raise BitbucketException(msg)
-    elif driver == 'Bitbucket Server':
-        if r.status_code not in [204]:
-            try:
-                msg = ERROR_MAP[r.status_code]
-            except KeyError:
-                msg = json_pp(r.json())
-
-            raise BitbucketException(msg)
+        raise BitbucketException(msg)
 
 
 def request_access_token(client_id, secret, debug):

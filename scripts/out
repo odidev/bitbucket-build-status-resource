@@ -5,7 +5,7 @@ import os
 import sys
 import json
 from bitbucket import (
-    json_pp, err, request_access_token, set_build_status, BitbucketException
+    json_pp, err, set_build_status, BitbucketException, BitbucketCloudDriver, BitbucketServerDriver
 )
 
 j = json.loads(sys.stdin.read())
@@ -18,7 +18,7 @@ if debug:
 # Configuration vars
 driver = j['source'].get('driver', 'Bitbucket Server')
 
-state = j['params'].get('state', j['params']['build_status'])
+state = j['params'].get('state', j['params'].get('build_status'))
 artifact_dir = "%s/%s" % (sys.argv[1], j['params']['repo'])
 
 repo = ''
@@ -30,16 +30,9 @@ endpoint = ''
 verify_ssl = True
 
 if driver == 'Bitbucket Server':
-    verify_ssl = j['source'].get('verify_ssl', True)
-    username = j['source']['bitbucket_username']
-    password = j['source']['bitbucket_password']
-    endpoint = j['source']['bitbucket_url']
+    driver = BitbucketServerDriver(j)
 elif driver == 'Bitbucket Cloud':
-    owner = j['source'].get('owner', j['source']['bitbucket_username'])
-    repository_name = j['source'].get('repository_name', j['params']['repo'])
-    repo = j['source'].get('repo', "{owner}/{repo}".format(owner=owner, repo=repository_name))
-    client_id = j['source']['client_id']
-    secret = j['source']['secret']
+    driver = BitbucketCloudDriver(j)
 else:
     err("Invalid driver, must be: Bitbucket Server or Bitbucket Cloud")
     exit(1)
@@ -112,11 +105,6 @@ else:
 
 # Do the update.
 try:
-    access_token = ''
-
-    if driver == 'Bitbucket Cloud':
-        access_token = request_access_token(client_id, secret, debug)
-
     # provide default values as these env vars will be unset in one-off builds
     # see also http://concourse.ci/implementing-resources.html
     pipeline = os.environ.get('BUILD_PIPELINE_NAME', '_pipeline_')
@@ -127,13 +115,12 @@ try:
     slug = "{0}/{1} #{2}".format(pipeline, job, build_name)
     set_build_status(
         repo=repo,
-        commit_sha=commit_sha,
+        commit_hash=commit_sha,
         state=state,
         key=key,
         name=name,
         url=build_url,
         description=description,
-        access_token=access_token,
         debug=debug,
         driver=driver,
         endpoint=endpoint,
