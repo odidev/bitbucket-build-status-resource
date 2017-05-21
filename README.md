@@ -12,7 +12,7 @@ The following forks have been merged in, too:
 * https://github.com/Meshcloud/concourse-resource-bitbucket
 
 You can find a pre-built [Docker image on DockerHub](https://hub.docker.com/r/shyxormz/bitbucket-build-status-resource/).
-If you come from one of the integrated forks, you can use the image with tag `compability`, which should work without you changing anything else.
+If you come from one of the integrated forks, you can use the image with tag `compatibility`, which should work without you changing anything else.
 
 ## Source Configuration
 
