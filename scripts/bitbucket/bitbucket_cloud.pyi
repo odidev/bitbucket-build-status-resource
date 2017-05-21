@@ -7,4 +7,6 @@ class BitbucketCloudDriver(BitbucketDriver, ConcourseResource):
         self.repository = ''
         self.client_id = ''
         self.client_secret = ''
+        self.username = ''
+        self.password = ''
         return
