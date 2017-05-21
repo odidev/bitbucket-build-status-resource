@@ -69,7 +69,7 @@ def step_impl(context):
             body='{"errors":[{"context":null,"message":"Authentication failed. Please check your credentials and try again.","exceptionName":"com.atlassian.bitbucket.auth.IncorrectPasswordAuthenticationException"}]}',
             status=401
     )
-    from scripts.bitbucket import post_result, err
+    from scripts.bitbucket import post_result, print_error
     result = post_result(context.good_build_url, d['source']['username'], d['source']['password'], False, good_status_dict(), True)
     assert result.status_code == 401
     httpretty.disable()
@@ -95,7 +95,7 @@ def step_impl(context):
             body='{"errors":[{"context":null,"message":"You are not permitted to access this resource","exceptionName":"com.atlassian.bitbucket.AuthorisationException"}]}',
             status=403
     )
-    from scripts.bitbucket import post_result, err
+    from scripts.bitbucket import post_result, print_error
     result = post_result(context.bad_build_url, d['source']['username'], d['source']['password'], False, good_status_dict(), True)
     assert result.status_code == 403
     httpretty.disable()
@@ -120,7 +120,7 @@ def step_impl(context):
             context.good_build_url,
             status=204
     )
-    from scripts.bitbucket import post_result, err
+    from scripts.bitbucket import post_result, print_error
     result = post_result(context.good_build_url, d['source']['username'], d['source']['password'], False, good_status_dict(), True)
     assert result.status_code == 204
     context.goodresult = result

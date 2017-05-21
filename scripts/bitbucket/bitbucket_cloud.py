@@ -3,8 +3,9 @@ from concourse import ConcourseResource, MissingSourceException
 
 
 class BitbucketCloudDriver(BitbucketDriver, ConcourseResource):
-    def __init__(self, config):
+    def __init__(self, config, debug):
         ConcourseResource.__init__(self, config)
+        self.debug = debug
         with self.mandatory_sources('client_id', 'secret'):
             self.repository = config['source'].get(
                 'repo',

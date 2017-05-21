@@ -1,3 +1,6 @@
+import sys
+
+
 class ConcourseResource(object):
     def __init__(self, config):
         self.config = config
@@ -23,3 +26,8 @@ class MandatorySources(object):
 class MissingSourceException(Exception):
     def __init__(self, name):
         Exception.__init__(self, 'Missing mandatory source: {name}'.format(name=name))
+
+
+# Convenience method for writing to stderr. Coerces input to a string.
+def print_error(txt):
+    sys.stderr.write(str(txt) + "\n")

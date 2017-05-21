@@ -1,12 +1,13 @@
 from requests.auth import HTTPBasicAuth
 from requests.packages.urllib3 import disable_warnings as disable_ssl_warnings
 from bitbucket import BitbucketDriver
-from concourse import ConcourseResource
+from concourse import ConcourseResource, print_error
 
 
 class BitbucketServerDriver(BitbucketDriver, ConcourseResource):
-    def __init__(self, config):
+    def __init__(self, config, debug):
         ConcourseResource.__init__(self, config)
+        self.debug = debug
         with self.mandatory_sources('bitbucket_username', 'bitbucket_password', 'bitbucket_url'):
             self.username = config['source']['bitbucket_username']
             self.password = config['source']['bitbucket_password']
@@ -21,7 +22,8 @@ class BitbucketServerDriver(BitbucketDriver, ConcourseResource):
 
         if self.verify_ssl is False:
             disable_ssl_warnings()
-            #todo: debug
+            if self.debug:
+                print_error("SSL warnings disabled\n")
 
         return url
 

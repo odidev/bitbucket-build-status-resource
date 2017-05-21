@@ -4,101 +4,83 @@ import subprocess
 import os
 import sys
 import json
-from bitbucket import (
-    json_pp, err, set_build_status, BitbucketException, BitbucketCloudDriver, BitbucketServerDriver
-)
+from bitbucket import BitbucketException, BitbucketCloudDriver, BitbucketServerDriver, set_build_status
+from concourse import print_error
+from helper import json_pp
 
-j = json.loads(sys.stdin.read())
+config = json.loads(sys.stdin.read())
 
-debug = j['source'].get('debug', False)
+debug = config['source'].get('debug', False)
 
 if debug:
-    err("--DEBUG MODE--")
+    print_error("--DEBUG MODE--")
 
 # Configuration vars
-driver = j['source'].get('driver', 'Bitbucket Server')
+driver = config['source'].get('driver', 'Bitbucket Server')
 
-state = j['params'].get('state', j['params'].get('build_status'))
-artifact_dir = "%s/%s" % (sys.argv[1], j['params']['repo'])
-
-repo = ''
-username = ''
-password = ''
-client_id = ''
-secret = ''
-endpoint = ''
-verify_ssl = True
+build_status = config['params'].get('build_status', config['params'].get('state'))
+artifact_dir = "%s/%s" % (sys.argv[1], config['params']['repo'])
 
 if driver == 'Bitbucket Server':
-    driver = BitbucketServerDriver(j)
+    driver = BitbucketServerDriver(config, debug)
 elif driver == 'Bitbucket Cloud':
-    driver = BitbucketCloudDriver(j)
+    driver = BitbucketCloudDriver(config, debug)
 else:
-    err("Invalid driver, must be: Bitbucket Server or Bitbucket Cloud")
+    print_error("Invalid driver, must be: 'Bitbucket Server' or 'Bitbucket Cloud'")
     exit(1)
 
 
 # The build status can only be one of three things
-if state not in ['INPROGRESS', 'SUCCESSFUL', 'FAILED']:
-    err("Invalid build status, must be: INPROGRESS, SUCCESSFUL, or FAILED")
+if build_status not in ['INPROGRESS', 'SUCCESSFUL', 'FAILED']:
+    print_error("Invalid build status, must be: INPROGRESS, SUCCESSFUL, or FAILED")
     exit(1)
+
+commit_hash = ''
 
 # Try and find out if it's a git or hg repo.
 if os.path.exists(os.path.join(artifact_dir, '.hg')):
-    repository_type = 'mercurial'
+    commit_hash = subprocess.check_output(
+        ['hg', '-R', artifact_dir, 'log', '--rev', '.', '--template', '{node}']
+    ).strip().decode()
 elif os.path.exists(os.path.join(artifact_dir, '.git')):
-    repository_type = 'git'
+    commit_hash = subprocess.check_output(
+        ['git', '-C', artifact_dir, 'rev-parse', 'HEAD']
+    ).strip().decode()
 else:
-    repository_type = ''
-    err("Cannot detect a repo.")
+    print_error("Cannot detect a repository.")
     exit(1)
 
-if repository_type == 'git':
-    commit_sha = subprocess.check_output(
-            ['git', '-C', artifact_dir, 'rev-parse', 'HEAD']
-    ).strip()
-else:
-    commit_sha = subprocess.check_output(
-        ['hg', '-R', artifact_dir, 'log', '--rev', '.', '--template', '{node}']
-    ).strip()
-
 if debug:
-    err("Commit: " + str(commit_sha))
+    print_error("Commit: " + str(commit_hash))
 
-if "build_url_file" in j["params"]:
-        with open(os.path.join(sys.argv[1], j["params"]["build_url_file"]), "r") as fp:
+if "build_url_file" in config["params"]:
+        with open(os.path.join(sys.argv[1], config["params"]["build_url_file"]), "r") as fp:
             build_url = fp.readlines()[0]
-elif 'BUILD_TEAM_NAME' in os.environ:
-    build_url = "{url}/teams/{team}/pipelines/{pipeline}/jobs/{jobname}/builds/{buildname}".format(
-        url=os.environ['ATC_EXTERNAL_URL'],
-        team=os.environ['BUILD_TEAM_NAME'],
-        pipeline=os.environ['BUILD_PIPELINE_NAME'],
-        jobname=os.environ['BUILD_JOB_NAME'],
-        buildname=os.environ['BUILD_NAME'],
-    )
 else:
-    build_url = "{url}/pipelines/{pipeline}/jobs/{jobname}/builds/{buildname}".format(
+    maybe_team = 'teams/{team}/'.format(team=os.environ['BUILD_TEAM_NAME']) if 'BUILD_TEAM_NAME' in os.environ else ''
+    build_url = "{url}/{maybe_team}pipelines/{pipeline}/jobs/{jobname}/builds/{buildname}".format(
         url=os.environ['ATC_EXTERNAL_URL'],
+        maybe_team=maybe_team,
         pipeline=os.environ['BUILD_PIPELINE_NAME'],
         jobname=os.environ['BUILD_JOB_NAME'],
         buildname=os.environ['BUILD_NAME'],
     )
 
 if debug:
-    err(build_url)
+    print_error(build_url)
 
-if "key" in j["params"]:
-    key = j["params"]["key"]
+if "key" in config["params"]:
+    key = config["params"]["key"]
 else:
     key = os.environ["BUILD_JOB_NAME"]
 
-if "name" in j["params"]:
-    name = j["params"]["name"]
+if "name" in config["params"]:
+    name = config["params"]["name"]
 else:
     name = os.environ["BUILD_NAME"]
 
-if "description_file" in j["params"]:
-    with open(os.path.join(sys.argv[1], j["params"]["description_file"]), "r") as fp:
+if "description_file" in config["params"]:
+    with open(os.path.join(sys.argv[1], config["params"]["description_file"]), "r") as fp:
         description = fp.read()
 else:
     description = "Concourse CI build, hijack as #{0}".format(os.environ["BUILD_ID"])
@@ -110,32 +92,26 @@ try:
     pipeline = os.environ.get('BUILD_PIPELINE_NAME', '_pipeline_')
     job = os.environ.get('BUILD_JOB_NAME', '_job_'),
     build_name = os.environ.get('BUILD_NAME', '_build#_') # name within job
-    build_id = os.environ['BUILD_ID'] # internal, unique build id in concurse
+    build_id = os.environ['BUILD_ID'] # internal, unique build id in Concourse
 
-    slug = "{0}/{1} #{2}".format(pipeline, job, build_name)
     set_build_status(
-        repo=repo,
-        commit_hash=commit_sha,
-        state=state,
+        commit_hash=commit_hash,
+        build_status=build_status,
         key=key,
         name=name,
         url=build_url,
         description=description,
         debug=debug,
-        driver=driver,
-        endpoint=endpoint,
-        username=username,
-        password=password,
-        verify_ssl=verify_ssl
+        driver=driver
     )
 
 except BitbucketException as e:
-    err(str(e))
+    print_error(str(e))
     exit(1)
 
-status_js = {"version": {"ref": commit_sha}}
+status = {"version": {"ref": commit_hash}}
 
 if debug:
-    err("Returning to concourse:\n" + json_pp(status_js))
+    print_error("Returning to Concourse:\n" + json_pp(status))
 
-print(json.dumps(status_js))
+print(json.dumps(status))
