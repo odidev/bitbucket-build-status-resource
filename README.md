@@ -1,4 +1,4 @@
-# concourse-resource-bitbucket
+# bitbucket-build-status-resource
 
 [![Docker Pulls](https://img.shields.io/docker/pulls/shyxormz/bitbucket-build-status-resource.svg?maxAge=2592000)](https://hub.docker.com/r/shyxormz/bitbucket-build-status-resource/)
 [![Build Status](https://travis-ci.org/SHyx0rmZ/bitbucket-build-status-resource.svg?branch=master)](https://travis-ci.org/SHyx0rmZ/bitbucket-build-status-resource)
