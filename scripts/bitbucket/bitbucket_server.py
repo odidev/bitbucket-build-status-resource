@@ -8,10 +8,10 @@ class BitbucketServerDriver(BitbucketDriver, ConcourseResource):
     def __init__(self, config, debug):
         ConcourseResource.__init__(self, config)
         self.debug = debug
-        self.username = config['source'].get('username', config['source'].get('bitbucket_username', ''))
-        self.password = config['source'].get('password', config['source'].get('bitbucket_password', ''))
-        self.endpoint = config['source'].get('endpoint', config['source'].get('bitbucket_url', ''))
-        self.verify_ssl = config['source'].get('verify_ssl', False)
+        self.username = self.source('username', self.source('bitbucket_username', ''))
+        self.password = self.source('password', self.source('bitbucket_password', ''))
+        self.endpoint = self.source('endpoint', self.source('bitbucket_url', ''))
+        self.verify_ssl = self.source('verify_ssl', False)
 
         if self.username == '':
             raise MissingSourceException('username')

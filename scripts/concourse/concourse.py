@@ -8,6 +8,18 @@ class ConcourseResource(object):
     def mandatory_sources(self, *names):
         return MandatorySources(self.config, *names)
 
+    def has_param(self, name):
+        return name in self.config['params']
+
+    def has_source(self, name):
+        return name in self.config['source']
+
+    def param(self, name, default=None):
+        return self.config['params'].get(name, default)
+
+    def source(self, name, default=None):
+        return self.config['source'].get(name, default)
+
 
 class MandatorySources(object):
     def __init__(self, config, *names):

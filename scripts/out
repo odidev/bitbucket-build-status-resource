@@ -1,25 +1,25 @@
 #!/usr/bin/env python
 
-import subprocess
 import os
 import sys
 import json
 from bitbucket import BitbucketException, BitbucketCloudDriver, BitbucketServerDriver, set_build_status
-from concourse import print_error
+from concourse import ConcourseResource, print_error
 from helper import json_pp, CommitHashFactory
 
 config = json.loads(sys.stdin.read())
+input = ConcourseResource(config)
 
-debug = config['source'].get('debug', False)
+debug = input.source('debug', False)
 
 if debug:
     print_error("--DEBUG MODE--")
 
 # Configuration vars
-driver = config['source'].get('driver', 'Bitbucket Server')
+driver = input.source('driver', 'Bitbucket Server')
 
-build_status = config['params'].get('build_status', config['params'].get('state'))
-artifact_dir = "%s/%s" % (sys.argv[1], config['params'].get('repository', config['params'].get('repo')))
+build_status = input.param('build_status', input.param('state'))
+artifact_dir = "%s/%s" % (sys.argv[1], input.param('repository', input.param('repo')))
 
 if driver == 'Bitbucket Server':
     driver = BitbucketServerDriver(config, debug)
@@ -44,8 +44,8 @@ if commit_hash is None:
 if debug:
     print_error("Commit: " + str(commit_hash))
 
-if "build_url_file" in config["params"]:
-        with open(os.path.join(sys.argv[1], config["params"]["build_url_file"]), "r") as fp:
+if input.has_param('build_url_file'):
+        with open(os.path.join(sys.argv[1], input.param('build_url_file')), "r") as fp:
             build_url = fp.readlines()[0]
 else:
     if 'BUILD_PIPELINE_NAME' in os.environ:
@@ -57,6 +57,7 @@ else:
             jobname=os.environ['BUILD_JOB_NAME'],
             buildname=os.environ['BUILD_NAME'],
         )
+    # one-off build
     else:
         build_url = '{url}/builds/{build}'.format(
             url=os.environ['ATC_EXTERNAL_URL'],
@@ -66,18 +67,18 @@ else:
 if debug:
     print_error(build_url)
 
-if "key" in config["params"]:
-    key = config["params"]["key"]
+if input.has_param('key'):
+    key = input.param('key')
 else:
     key = os.environ.get("BUILD_JOB_NAME", 'one-off-build-{0}'.format(os.environ['BUILD_ID']))
 
-if "name" in config["params"]:
-    name = config["params"]["name"]
+if input.has_param('name'):
+    name = input.param('name')
 else:
     name = os.environ.get("BUILD_NAME", 'One-off build #{0}'.format(os.environ['BUILD_ID']))
 
-if "description_file" in config["params"]:
-    with open(os.path.join(sys.argv[1], config["params"]["description_file"]), "r") as fp:
+if input.has_param('description_file'):
+    with open(os.path.join(sys.argv[1], input.param('description_file')), "r") as fp:
         description = fp.read()
 else:
     description = "Concourse CI build, hijack as #{0}".format(os.environ["BUILD_ID"])

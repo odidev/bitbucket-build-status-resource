@@ -7,24 +7,24 @@ class BitbucketCloudDriver(BitbucketDriver, ConcourseResource):
     def __init__(self, config, debug):
         ConcourseResource.__init__(self, config)
         self.debug = debug
-        self.repository = config['source'].get(
+        self.repository = self.source(
             'repository',
-            config['source'].get(
+            self.source(
                 'repo',
                 '{owner}/{repository}'.format(
-                    owner=config['source'].get(
+                    owner=self.source(
                         'owner',
-                        config['source'].get('bitbucket_username', '')
+                        self.source('bitbucket_username', '')
                     ),
-                    repository=config['source'].get(
+                    repository=self.source(
                         'repository_name',
-                        config['params'].get('repo', '')
+                        self.param('repo', '')
                     )
                 )
             )
         )
-        self.client_id = config['source'].get('client_id', '')
-        self.cliend_secret = config['source'].get('client_secret', config['source'].get('secret', ''))
+        self.client_id = self.source('client_id', '')
+        self.cliend_secret = self.source('client_secret', self.source('secret', ''))
 
         if self.repository == '' or self.repository == '/':
             raise MissingSourceException('repository')
