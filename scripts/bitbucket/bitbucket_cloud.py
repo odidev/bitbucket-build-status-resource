@@ -32,7 +32,7 @@ class BitbucketCloudDriver(BitbucketDriver, ConcourseResource):
     def get_post_url(self, commit_hash):
         return 'https://api.bitbucket.org/2.0/repositories/{repository}/commit/{commit}/statuses/build'.format(
             repository=self.repository,
-            commit=commit_hash
+            commit=str(commit_hash)
         )
 
     def get_request_options(self):

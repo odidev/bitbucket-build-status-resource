@@ -6,7 +6,7 @@ import sys
 import json
 from bitbucket import BitbucketException, BitbucketCloudDriver, BitbucketServerDriver, set_build_status
 from concourse import print_error
-from helper import json_pp
+from helper import json_pp, CommitHashFactory
 
 config = json.loads(sys.stdin.read())
 
@@ -35,19 +35,10 @@ if build_status not in ['INPROGRESS', 'SUCCESSFUL', 'FAILED']:
     print_error("Invalid build status, must be: INPROGRESS, SUCCESSFUL, or FAILED")
     exit(1)
 
-commit_hash = ''
+commit_hash = CommitHashFactory.create(artifact_dir)
 
-# Try and find out if it's a git or hg repo.
-if os.path.exists(os.path.join(artifact_dir, '.hg')):
-    commit_hash = subprocess.check_output(
-        ['hg', '-R', artifact_dir, 'log', '--rev', '.', '--template', '{node}']
-    ).strip().decode()
-elif os.path.exists(os.path.join(artifact_dir, '.git')):
-    commit_hash = subprocess.check_output(
-        ['git', '-C', artifact_dir, 'rev-parse', 'HEAD']
-    ).strip().decode()
-else:
-    print_error("Cannot detect a repository.")
+if commit_hash is None:
+    print_error('Cannot detect a repository')
     exit(1)
 
 if debug:

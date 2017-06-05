@@ -25,7 +25,7 @@ class BitbucketServerDriver(BitbucketDriver, ConcourseResource):
     def get_post_url(self, commit_hash):
         url = '{endpoint}/rest/build-status/1.0/commits/{commit}'.format(
             endpoint=self.endpoint.rstrip('/'),
-            commit=commit_hash
+            commit=str(commit_hash)
         )
 
         if self.verify_ssl is False:
