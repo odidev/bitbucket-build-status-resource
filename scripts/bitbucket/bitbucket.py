@@ -87,7 +87,7 @@ def request_access_token(client_id, secret, debug):
         )
 
     if debug:
-        err("Access token result: " + str(response) + str(response.content))
+        print_error("Access token result: " + str(response) + str(response.content))
 
     if response.status_code != 200:
         try:
