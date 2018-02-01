@@ -98,3 +98,25 @@ def request_access_token(client_id, secret, debug):
         raise BitbucketException(message)
 
     return response.json()['access_token']
+
+def post_result(url, user, password, verify, data, debug):
+    r = requests.post(
+        url,
+        auth=HTTPBasicAuth(user, password),
+        verify=verify,
+        json=data
+        )
+
+    if debug:
+        print_error("Request result: " + str(r))
+
+    if r.status_code == 403:
+        print_error("HTTP 403 Forbidden - Does your bitbucket user have rights to the repo?")
+    elif r.status_code == 401:
+        print_error("HTTP 401 Unauthorized - Are your bitbucket credentials correct?")
+
+    # All other errors, just dump the JSON
+    if r.status_code != 204:  # 204 is a success per Bitbucket docs
+        print_error(json_pp(r.json()))
+
+    return r

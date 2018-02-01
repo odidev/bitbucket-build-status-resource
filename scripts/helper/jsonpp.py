@@ -3,6 +3,7 @@ import json
 
 # Convenience method for pretty-printing JSON
 def json_pp(data):
+    print dir(json)
     if isinstance(data, dict):
         return json.dumps(data,
                           sort_keys=True,
