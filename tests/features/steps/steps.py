@@ -36,7 +36,10 @@ def step_impl(context):
 @then(u'I should get back an empty ref')
 def step_impl(context):
     out = subprocess.check_output(context.inscript).strip()
-    assert '{ "version": { "ref": "none" }}' == str(out)
+    print("*******")
+    print(str(out))
+
+    assert  str(b'{ "version": { "ref": "none" }}') == str(out)
 
 
 @given(u'I have used the "check" script')
