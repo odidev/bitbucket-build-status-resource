@@ -2,6 +2,7 @@ import unittest
 import mock
 
 from bitbucket import request_access_token, BitbucketException
+from concourse import print_error
 
 
 class RequestAccessTokenTestCase(unittest.TestCase):

@@ -21,10 +21,10 @@ def good_status_dict():
     build_url = "https://concourse.local/pipelines/testing/jobs/1/builds/1"
     return {
         "state": 'INPROGRESS',
-        "key": os.environ["BUILD_JOB_NAME"],
-        "name": os.environ["BUILD_NAME"],
+        "key": "B-1",
+        "name": "build",
         "url": build_url,
-        "description": "Concourse build %s" % os.environ["BUILD_ID"]
+        "description": "Concourse build %s" % "ABC"
     }
 
 
@@ -36,7 +36,10 @@ def step_impl(context):
 @then(u'I should get back an empty ref')
 def step_impl(context):
     out = subprocess.check_output(context.inscript).strip()
-    assert '{ "version": { "ref": "none" }}' == str(out)
+    print("*******")
+    print(str(out))
+
+    assert  str(b'{ "version": { "ref": "none" }}') == str(out)
 
 
 @given(u'I have used the "check" script')
@@ -69,7 +72,9 @@ def step_impl(context):
             body='{"errors":[{"context":null,"message":"Authentication failed. Please check your credentials and try again.","exceptionName":"com.atlassian.bitbucket.auth.IncorrectPasswordAuthenticationException"}]}',
             status=401
     )
-    from scripts.bitbucket import post_result, print_error
+    import sys
+    sys.path.append('scripts')
+    from scripts.bitbucket import post_result
     result = post_result(context.good_build_url, d['source']['username'], d['source']['password'], False, good_status_dict(), True)
     assert result.status_code == 401
     httpretty.disable()
