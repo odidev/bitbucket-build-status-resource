@@ -25,6 +25,8 @@ class BitbucketCloudDriver(BitbucketDriver, ConcourseResource):
         )
         self.client_id = config['source'].get('client_id', '')
         self.client_secret = config['source'].get('client_secret', config['source'].get('secret', ''))
+        self.username = config['source'].get('username', '')
+        self.password = config['source'].get('password', '')
 
         if self.repository == '' or self.repository == '/':
             raise MissingSourceException('repository')
