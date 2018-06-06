@@ -83,9 +83,10 @@ else:
 if "name" in config["params"]:
     name = config["params"]["name"]
 else:
-    name = os.environ.get("BUILD_NAME", 'One-off build #{0}'.format(os.environ['BUILD_ID']))
     if 'BUILD_JOB_NAME' in os.environ:
-        name = '{}-{}'.format(os.environ.get('BUILD_JOB_NAME'),name)
+        name = '{} #{}'.format(os.environ['BUILD_JOB_NAME'], os.environ['BUILD_NAME'])
+    else:
+        name = 'One-off build #{}'.format(os.environ['BUILD_ID'])
 
 if "description_file" in config["params"]:
     with open(os.path.join(sys.argv[1], config["params"]["description_file"]), "r") as fp:
