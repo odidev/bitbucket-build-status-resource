@@ -6,6 +6,7 @@ ENV LANG C
 
 RUN apk update --no-progress && \
     apk add --no-cache --no-progress \
+        bash \
         py-pip \
         git \
         mercurial && \
