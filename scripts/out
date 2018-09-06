@@ -37,8 +37,11 @@ if build_status not in ['INPROGRESS', 'SUCCESSFUL', 'FAILED']:
 
 commit_hash = ''
 
+if "commit_hash_file" in config["params"]:
+    with open(os.path.join(sys.argv[1], config["params"]["commit_hash_file"]), "r") as fp:
+        commit_hash = fp.readlines()[0]
 # Try and find out if it's a git or hg repo.
-if os.path.exists(os.path.join(artifact_dir, '.hg')):
+elif os.path.exists(os.path.join(artifact_dir, '.hg')):
     commit_hash = subprocess.check_output(
         ['hg', '-R', artifact_dir, 'log', '--rev', '.', '--template', '{node}']
     ).strip().decode()
