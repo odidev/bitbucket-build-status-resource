@@ -19,7 +19,6 @@ if debug:
 driver = config['source'].get('driver', 'Bitbucket Server')
 
 build_status = config['params'].get('build_status', config['params'].get('state'))
-artifact_dir = "%s/%s" % (sys.argv[1], config['params'].get('repository', config['params'].get('repo')))
 
 if driver == 'Bitbucket Server':
     driver = BitbucketServerDriver(config, debug)
@@ -39,18 +38,20 @@ commit_hash = ''
 
 if "commit_hash_file" in config["params"]:
     with open(os.path.join(sys.argv[1], config["params"]["commit_hash_file"]), "r") as fp:
-        commit_hash = fp.readlines()[0]
+        commit_hash = fp.readlines()[0].strip()
 # Try and find out if it's a git or hg repo.
-elif os.path.exists(os.path.join(artifact_dir, '.hg')):
-    commit_hash = subprocess.check_output(
-        ['hg', '-R', artifact_dir, 'log', '--rev', '.', '--template', '{node}']
-    ).strip().decode()
-elif os.path.exists(os.path.join(artifact_dir, '.git')):
-    commit_hash = subprocess.check_output(
-        ['git', '-C', artifact_dir, 'rev-parse', 'HEAD']
-    ).strip().decode()
 else:
-    print_error("Cannot detect a repository.")
+    artifact_dir = "%s/%s" % (sys.argv[1], config['params'].get('repository', config['params'].get('repo')))
+    if os.path.exists(os.path.join(artifact_dir, '.hg')):
+        commit_hash = subprocess.check_output(
+            ['hg', '-R', artifact_dir, 'log', '--rev', '.', '--template', '{node}']
+        ).strip().decode()
+    elif os.path.exists(os.path.join(artifact_dir, '.git')):
+        commit_hash = subprocess.check_output(
+            ['git', '-C', artifact_dir, 'rev-parse', 'HEAD']
+        ).strip().decode()
+    else:
+        print_error("Cannot detect a repository.")
     exit(1)
 
 if debug:
@@ -58,7 +59,7 @@ if debug:
 
 if "build_url_file" in config["params"]:
         with open(os.path.join(sys.argv[1], config["params"]["build_url_file"]), "r") as fp:
-            build_url = fp.readlines()[0]
+            build_url = fp.readlines()[0].strip()
 else:
     if 'BUILD_PIPELINE_NAME' in os.environ:
         maybe_team = 'teams/{team}/'.format(team=os.environ['BUILD_TEAM_NAME']) if 'BUILD_TEAM_NAME' in os.environ else ''
@@ -76,7 +77,7 @@ else:
         )
 
 if debug:
-    print_error(build_url)
+    print_error("Build URL: " + str(build_url))
 
 if "key" in config["params"]:
     key = config["params"]["key"]
