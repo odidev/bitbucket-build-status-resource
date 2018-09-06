@@ -53,7 +53,7 @@ else:
         ).strip().decode()
     else:
         print_error("Cannot detect a repository.")
-    exit(1)
+        exit(1)
 
 if debug:
     print_error("Commit: " + str(commit_hash))
