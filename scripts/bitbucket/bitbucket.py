@@ -102,25 +102,3 @@ def request_access_token(client_id, secret, debug):
         raise BitbucketException(message)
 
     return response.json()['access_token']
-
-def post_result(url, user, password, verify, data, debug):
-    response = requests.post(
-        url,
-        auth=HTTPBasicAuth(user, password),
-        verify=verify,
-        json=data
-        )
-
-    if debug:
-        print_error("Request result: " + str(response.json()))
-
-    # 204 is a success per Bitbucket docs
-    if response.status_code != 204:
-        try:
-            message = ERROR_MAP[response.status_code]
-        except KeyError:
-            message = json_pp(response.json()) # All other errors, just dump the JSON
-
-        raise BitbucketException(message)
-
-    return response
