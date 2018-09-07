@@ -112,7 +112,7 @@ def post_result(url, user, password, verify, data, debug):
         )
 
     if debug:
-        print_error("Request result: " + str(r.json()))
+        print_error("Request result: " + str(response.json()))
 
     # 204 is a success per Bitbucket docs
     if response.status_code != 204:
