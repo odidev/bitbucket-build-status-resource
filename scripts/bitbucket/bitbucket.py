@@ -7,7 +7,8 @@ from requests.auth import HTTPBasicAuth, AuthBase
 ERROR_MAP = {
     403: "HTTP 403 Forbidden - Does your Bitbucket user have rights to the repository?",
     404: "HTTP 404 Not Found - Does the repository supplied exist?",
-    400: "HTTP 401 Unauthorized - Are your Bitbucket credentials correct?"
+    401: "HTTP 401 Unauthorized - Are your Bitbucket credentials correct?",
+    400: "HTTP 400 Bad Request - something's gone wrong. Set `source.debug: true` to show details"
 }
 
 
@@ -59,6 +60,9 @@ def set_build_status(commit_hash, build_status, key, name, url, description, deb
         "description": description
     }
 
+    if debug:
+        print_error("Set build status: " + str(data))
+
     response = requests.post(
         post_url,
         json=data,
@@ -66,7 +70,7 @@ def set_build_status(commit_hash, build_status, key, name, url, description, deb
     )
 
     if debug:
-        print_error("Request result: " + str(response))
+        print_error("Request result: " + str(response.json()))
 
     # Check status code. Bitbucket brakes rest a bit  by returning 200 or 201
     # depending on it's the first time the status is posted.
@@ -87,7 +91,7 @@ def request_access_token(client_id, secret, debug):
         )
 
     if debug:
-        err("Access token result: " + str(response) + str(response.content))
+        print_error("Access token result: " + str(response) + str(response.content))
 
     if response.status_code != 200:
         try:
@@ -98,25 +102,3 @@ def request_access_token(client_id, secret, debug):
         raise BitbucketException(message)
 
     return response.json()['access_token']
-
-def post_result(url, user, password, verify, data, debug):
-    r = requests.post(
-        url,
-        auth=HTTPBasicAuth(user, password),
-        verify=verify,
-        json=data
-        )
-
-    if debug:
-        print_error("Request result: " + str(r))
-
-    if r.status_code == 403:
-        print_error("HTTP 403 Forbidden - Does your bitbucket user have rights to the repo?")
-    elif r.status_code == 401:
-        print_error("HTTP 401 Unauthorized - Are your bitbucket credentials correct?")
-
-    # All other errors, just dump the JSON
-    if r.status_code != 204:  # 204 is a success per Bitbucket docs
-        print_error(json_pp(r.json()))
-
-    return r

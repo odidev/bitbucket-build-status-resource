@@ -1,5 +1,5 @@
 from bitbucket import BitbucketDriver, BitbucketOAuth, request_access_token
-from concourse import ConcourseResource, MissingSourceException
+from concourse import ConcourseResource, MissingSourceException, print_error
 from requests.auth import HTTPBasicAuth
 
 
@@ -39,7 +39,7 @@ class BitbucketCloudDriver(BitbucketDriver, ConcourseResource):
 
     def get_request_options(self):
         if self.client_id != '' and self.client_secret != '':
-            access_token = request_access_token(self.client_id, self.client_secret, False)
+            access_token = request_access_token(self.client_id, self.client_secret, self.debug)
 
             return {
                 'auth': BitbucketOAuth(access_token)

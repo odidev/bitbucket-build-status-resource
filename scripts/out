@@ -4,6 +4,7 @@ import subprocess
 import os
 import sys
 import json
+import urllib
 from bitbucket import BitbucketException, BitbucketCloudDriver, BitbucketServerDriver, set_build_status
 from concourse import print_error
 from helper import json_pp
@@ -19,7 +20,6 @@ if debug:
 driver = config['source'].get('driver', 'Bitbucket Server')
 
 build_status = config['params'].get('build_status', config['params'].get('state'))
-artifact_dir = "%s/%s" % (sys.argv[1], config['params'].get('repository', config['params'].get('repo')))
 
 if driver == 'Bitbucket Server':
     driver = BitbucketServerDriver(config, debug)
@@ -37,43 +37,51 @@ if build_status not in ['INPROGRESS', 'SUCCESSFUL', 'FAILED']:
 
 commit_hash = ''
 
+if "commit_hash_file" in config["params"]:
+    with open(os.path.join(sys.argv[1], config["params"]["commit_hash_file"]), "r") as fp:
+        commit_hash = fp.readlines()[0].strip()
 # Try and find out if it's a git or hg repo.
-if os.path.exists(os.path.join(artifact_dir, '.hg')):
-    commit_hash = subprocess.check_output(
-        ['hg', '-R', artifact_dir, 'log', '--rev', '.', '--template', '{node}']
-    ).strip().decode()
-elif os.path.exists(os.path.join(artifact_dir, '.git')):
-    commit_hash = subprocess.check_output(
-        ['git', '-C', artifact_dir, 'rev-parse', 'HEAD']
-    ).strip().decode()
 else:
-    print_error("Cannot detect a repository.")
-    exit(1)
+    artifact_dir = "%s/%s" % (sys.argv[1], config['params'].get('repository', config['params'].get('repo')))
+    if os.path.exists(os.path.join(artifact_dir, '.hg')):
+        commit_hash = subprocess.check_output(
+            ['hg', '-R', artifact_dir, 'log', '--rev', '.', '--template', '{node}']
+        ).strip().decode()
+    elif os.path.exists(os.path.join(artifact_dir, '.git')):
+        commit_hash = subprocess.check_output(
+            ['git', '-C', artifact_dir, 'rev-parse', 'HEAD']
+        ).strip().decode()
+    else:
+        print_error("Cannot detect a repository.")
+        exit(1)
 
 if debug:
     print_error("Commit: " + str(commit_hash))
 
 if "build_url_file" in config["params"]:
         with open(os.path.join(sys.argv[1], config["params"]["build_url_file"]), "r") as fp:
-            build_url = fp.readlines()[0]
+            build_url = fp.readlines()[0].strip()
 else:
     if 'BUILD_PIPELINE_NAME' in os.environ:
         maybe_team = 'teams/{team}/'.format(team=os.environ['BUILD_TEAM_NAME']) if 'BUILD_TEAM_NAME' in os.environ else ''
-        build_url = "{url}/{maybe_team}pipelines/{pipeline}/jobs/{jobname}/builds/{buildname}".format(
-            url=os.environ['ATC_EXTERNAL_URL'],
+        build_path = "{maybe_team}pipelines/{pipeline}/jobs/{jobname}/builds/{buildname}".format(
             maybe_team=maybe_team,
             pipeline=os.environ['BUILD_PIPELINE_NAME'],
             jobname=os.environ['BUILD_JOB_NAME'],
             buildname=os.environ['BUILD_NAME'],
         )
     else:
-        build_url = '{url}/builds/{build}'.format(
-            url=os.environ['ATC_EXTERNAL_URL'],
+        build_path = '{url}/builds/{build}'.format(
             build=os.environ['BUILD_ID']
         )
+    
+    build_url = "{url}/{path}".format(
+        url=os.environ['ATC_EXTERNAL_URL'],
+        path=urllib.quote(build_path)
+    )
 
 if debug:
-    print_error(build_url)
+    print_error("Build URL: " + str(build_url))
 
 if "key" in config["params"]:
     key = config["params"]["key"]

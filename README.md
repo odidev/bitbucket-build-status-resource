@@ -85,6 +85,8 @@ This will show up on Bitbucket. For example "unit tests", "end to end tests"
 * `description_file` - *Optional.* A path to a file containing a description of the
 build. For example: "7 tests have failed". If not specified, the description will default to `"Concourse CI build, hijack as #<build-id>"`.
 
+* `commit_hash_file` - *Optional*: A path to a file containing a commit hash. When specified, `repository` is no longer required and this option takes precedence.  This is useful in case you don't have the repository checked out or you have logic inside a task that computes the correct commit to update.
+
 * `repo` - *Required.* **DEPRECATED. Use `repository` instead.** Name of the
 repository containing the commit hash to be updated.
 This will come from a previous `get` on a `git/hg` resource.
