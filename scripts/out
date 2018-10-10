@@ -71,10 +71,10 @@ else:
             buildname=os.environ['BUILD_NAME'],
         )
     else:
-        build_path = '{url}/builds/{build}'.format(
+        build_path = 'builds/{build}'.format(
             build=os.environ['BUILD_ID']
         )
-    
+
     build_url = "{url}/{path}".format(
         url=os.environ['ATC_EXTERNAL_URL'],
         path=urllib.quote(build_path)
