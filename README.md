@@ -143,7 +143,7 @@ Once unit tests finish, the build status is updated to either success or failure
           on_failure:
             put: build-status
             params:
-              build_staus: FAILED
+              build_status: FAILED
               repository: testing-repo
 
 In this example, notice that the `repository` parameter is set to the same name as the `testing-repo` resource.
