@@ -31,8 +31,8 @@ else:
 
 
 # The build status can only be one of three things
-if build_status not in ['INPROGRESS', 'SUCCESSFUL', 'FAILED']:
-    print_error("Invalid build status, must be: INPROGRESS, SUCCESSFUL, or FAILED")
+if build_status not in ['INPROGRESS', 'SUCCESSFUL', 'FAILED', 'STOPPED']:
+    print_error("Invalid build status, must be: INPROGRESS, SUCCESSFUL, FAILED or STOPPED")
     exit(1)
 
 commit_hash = ''
