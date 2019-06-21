@@ -7,9 +7,10 @@ ENV LANG C
 RUN apk update --no-progress && \
     apk add --no-cache --no-progress \
         bash \
-        py-pip \
+        python3 \
         git \
         mercurial && \
-    pip install 'requests>=2.8.1'
+    pip3 install --upgrade pip && \
+    pip3 install 'requests>=2.8.1'
 
 ADD scripts /opt/resource
