@@ -1,6 +1,4 @@
 import subprocess
-import httpretty
-import os
 from behave import given, then
 
 
@@ -39,7 +37,7 @@ def step_impl(context):
     print("*******")
     print(str(out))
 
-    assert  str(b'{ "version": { "ref": "none" }}') == str(out)
+    assert str(b'{ "version": { "ref": "none" }}') == str(out)
 
 
 @given(u'I have used the "check" script')

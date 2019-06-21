@@ -11,4 +11,3 @@ Feature: Validation of "check"/"in" results
   Scenario: "Check" call
     Given I have used the "check" script
     Then I should get back an empty array
-
