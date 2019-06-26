@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # Concourse needs something on a get action. Since we don't use this to
 # get anything, just give it an empty ref.
