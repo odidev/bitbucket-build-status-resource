@@ -8,6 +8,10 @@ import urllib
 from bitbucket import BitbucketException, BitbucketCloudDriver, BitbucketServerDriver, set_build_status
 from concourse import print_error
 from helper import json_pp
+try:
+    from urllib import quote  # Python 2.X
+except ImportError:
+    from urllib.parse import quote  # Python 3+
 
 config = json.loads(sys.stdin.read())
 
@@ -82,7 +86,7 @@ else:
 
     build_url = "{url}/{path}".format(
         url=os.environ['ATC_EXTERNAL_URL'],
-        path=urllib.quote(build_path)
+        path=quote(build_path)
     )
 
 if debug:
