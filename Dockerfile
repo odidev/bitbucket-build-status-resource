@@ -8,6 +8,7 @@ RUN apk update --no-progress && \
     apk add --no-cache --no-progress \
         bash \
         python3 \
+        py3-pip \
         git \
         mercurial && \
     pip3 install --upgrade pip && \
