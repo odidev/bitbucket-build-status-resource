@@ -33,7 +33,7 @@ def step_impl(context):
 
 @then(u'I should get back an empty ref')
 def step_impl(context):
-    out = subprocess.check_output(context.inscript).strip()
+    out = subprocess.check_output("python " + context.inscript, shell=True).strip()
     print("*******")
     print(str(out))
 
@@ -47,5 +47,5 @@ def step_impl(context):
 
 @then(u'I should get back an empty array')
 def step_impl(context):
-    out = subprocess.check_output(context.checkscript).strip()
+    out = subprocess.check_output("python " + context.checkscript, shell=True).strip()
     assert "[]" in str(out)
