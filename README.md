@@ -180,8 +180,9 @@ Any contribution is welcomed.
 
 ## References
 
- * [Resources (Concourse CI)](https://concourse.ci/resources.html)
- * [Bitbucket build status API](https://developer.atlassian.com/bitbucket/api/2/reference/resource/repositories/%7Busername%7D/%7Brepo_slug%7D/commit/%7Bnode%7D/statuses/build)
+ * [Resources (Concourse CI)](https://concourse-ci.org/resources.html)
+ * [Implementing a Resource Type (Concourse CI)](https://concourse-ci.org/implementing-resource-types.html)
+ * [Bitbucket build status API](https://developer.atlassian.com/bitbucket/api/2/reference/resource/repositories/%7Bworkspace%7D/%7Brepo_slug%7D/commit/%7Bcommit%7D/statuses/build)
 
 ## Thanks
 * [Karunamon](https://github.com/Karunamon) for getting the ball rolling.
